@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NSD Web Flasher — nostr-signer-s3</title>
+<meta name="description" content="Flash the nostr-signer-s3 hardware Nostr signer straight from Chrome, no software install.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8IS0tIGZsaW5rIG1hcms6IHRocmVlICI+IiBjaGV2cm9ucyB0cmFpbGluZyBvZmYsIGJyaWdodGVzdCBhdCB0aGUgbGVhZGluZyBlZGdlIC0tPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iOTIiIGZpbGw9IiMxNzEwMmEiLz4KICA8ZyBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjQ2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogICAgPHBhdGggZD0iTTY4IDEyNCBMMTU0IDI1NiBMNjggMzg4IiBzdHJva2U9IiM2ZDI4ZDkiLz4KICAgIDxwYXRoIGQ9Ik0xODggMTI0IEwyNzQgMjU2IEwxODggMzg4IiBzdHJva2U9IiNhNzhiZmEiLz4KICAgIDxwYXRoIGQ9Ik0zMDggMTI0IEwzOTQgMjU2IEwzMDggMzg4IiBzdHJva2U9IiNjNGI1ZmQiLz4KICA8L2c+Cjwvc3ZnPgo=">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#ffffff; --text:#111111; --muted:#666666; --accent:#7c3aed;
+    --accent-text:#ffffff; --border:#e4e4e7; --card:#f9f8fc; --warn:#b45309; --warn-bg:#fff7ed;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#111114; --text:#eeeeee; --muted:#a1a1aa; --accent:#a78bfa;
+      --accent-text:#141018; --border:#2a2a30; --card:#18181d; --warn:#fbbf24; --warn-bg:#2a2010; }
+  }
+  :root[data-theme="dark"]{ --bg:#111114; --text:#eeeeee; --muted:#a1a1aa; --accent:#a78bfa;
+    --accent-text:#141018; --border:#2a2a30; --card:#18181d; --warn:#fbbf24; --warn-bg:#2a2010; }
+  :root[data-theme="light"]{ --bg:#ffffff; --text:#111111; --muted:#666666; --accent:#7c3aed;
+    --accent-text:#ffffff; --border:#e4e4e7; --card:#f9f8fc; --warn:#b45309; --warn-bg:#fff7ed; }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:32px 20px 80px}
+  header{margin-bottom:28px}
+  .logo{font-weight:800; font-size:22px; letter-spacing:-.5px; color:var(--accent); display:inline-flex; align-items:center; gap:8px}
+  .logo .mark{height:1.3em; width:1.3em; flex:none}
+  .logo .mark path{animation:flinkflow 1.8s ease-in-out infinite}
+  .logo .mark .f2{animation-delay:.12s}
+  .logo .mark .f3{animation-delay:.24s}
+  @keyframes flinkflow{0%,100%{opacity:.45} 50%{opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .logo .mark path{animation:none} }
+  h1{font-size:26px; margin:14px 0 6px; letter-spacing:-.3px}
+  .sub{color:var(--muted); margin:0 0 4px; font-size:15px}
+  a{color:var(--accent)}
+
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:22px; margin:22px 0;
+  }
+  .flash-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+
+  esp-web-install-button button{
+    background:var(--accent); color:var(--accent-text); border:none;
+    border-radius:999px; padding:12px 26px; font-size:16px; font-weight:600;
+    cursor:pointer; font-family:inherit;
+  }
+  esp-web-install-button button:hover{filter:brightness(1.06)}
+  esp-web-install-button [slot="unsupported"]{
+    background:var(--warn-bg); color:var(--warn); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px; font-size:14px;
+  }
+  esp-web-install-button [slot="not-allowed"]{
+    background:var(--warn-bg); color:var(--warn); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px; font-size:14px;
+  }
+
+  .meta{color:var(--muted); font-size:13px; margin-top:4px}
+  code{
+    background:var(--card); border:1px solid var(--border); border-radius:5px;
+    padding:1px 6px; font-size:12.5px; word-break:break-all;
+  }
+  .noscript-note code{display:inline-block; margin-top:6px}
+
+  h2{font-size:17px; margin:0 0 8px}
+  ul{margin:8px 0; padding-left:20px}
+  li{margin:5px 0}
+  .warn{
+    background:var(--warn-bg); border:1px solid var(--border); color:var(--warn);
+    border-radius:10px; padding:14px 16px; font-size:14px; margin:16px 0;
+  }
+  footer{margin-top:40px; color:var(--muted); font-size:13px; border-top:1px solid var(--border); padding-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg class="mark" viewBox="0 0 512 512" fill="none" aria-hidden="true">
+        <rect width="512" height="512" rx="92" fill="#17102a"/>
+        <g stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+          <path class="f1" d="M68 124 L154 256 L68 388" stroke="#6d28d9"/>
+          <path class="f2" d="M188 124 L274 256 L188 388" stroke="#a78bfa"/>
+          <path class="f3" d="M308 124 L394 256 L308 388" stroke="#c4b5fd"/>
+        </g>
+      </svg>
+      flink
+    </div>
+    <h1>Flash your nostr-signer-s3</h1>
+    <p class="sub">For the LilyGo T-Display S3 hardware Nostr signer used with
+      <a href="https://flink.club">flink.club</a> and the LNbits-NSD-compatible
+      extensions (horse, nos2x-nsd).</p>
+  </header>
+
+  <div class="warn">
+    Works in <strong>Chrome or Edge on desktop</strong> only — flashing uses the
+    WebSerial API, which Safari and Firefox don't support. Not available on
+    mobile browsers.
+  </div>
+
+  <div class="card">
+    <div class="flash-row">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate">Connect device &amp; install</button>
+        <span slot="unsupported">Your browser doesn't support WebSerial — open this page in Chrome or Edge on a computer.</span>
+        <span slot="not-allowed">This page must be served over HTTPS to flash a device.</span>
+      </esp-web-install-button>
+    </div>
+    <p class="meta" id="fw-meta">Loading firmware info…</p>
+  </div>
+
+  <h2>Before you plug in</h2>
+  <ul>
+    <li>Use a USB-C cable that carries data (not a charge-only cable).</li>
+    <li>Click <strong>Connect device &amp; install</strong>, then pick the board from
+      the Chrome port picker.</li>
+    <li>A normal reflash <strong>keeps your key and PIN</strong> — the encrypted
+      key vault lives in a separate NVS partition the flasher doesn't touch.</li>
+    <li>The install dialog has an <strong>"Erase device"</strong> option. Only tick
+      it if you want a full factory reset — that wipes the key vault and everything
+      else on the board, permanently.</li>
+    <li>Erased and have a 12-word backup? Restore it at
+      <a href="https://recover.flink.club">recover.flink.club</a> once this finishes.</li>
+  </ul>
+
+  <h2>First flash on a factory board</h2>
+  <p>If the board has never run this firmware, you may need to hold the
+    <strong>BOOT</strong> button while plugging in the USB cable (this forces the
+    ROM bootloader), then press reset once flashing finishes.</p>
+
+  <footer>
+    <p>Firmware source: <a href="https://github.com/TuvokSeed/nsd-s3">github.com/TuvokSeed/nsd-s3</a>
+      (Apache-2.0). Built with <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>
+      (Apache-2.0), self-hosted here, no CDN.</p>
+  </footer>
+</div>
+
+<script type="module" src="vendor/esp-web-tools/install-button.js"></script>
+<script>
+  fetch("manifest.json").then(r => r.json()).then(m => {
+    const build = (m.builds && m.builds[0]) || {};
+    const fwPart = (build.parts || []).find(p => p.path.includes("firmware.bin")) || {};
+    const el = document.getElementById("fw-meta");
+    el.innerHTML = `${m.name} v${m.version}` +
+      (fwPart.sha256 ? ` &middot; firmware.bin sha256 <code>${fwPart.sha256}</code>` : "");
+  }).catch(() => {
+    document.getElementById("fw-meta").textContent = "Could not load manifest.json.";
+  });
+</script>
+</body>
+</html>

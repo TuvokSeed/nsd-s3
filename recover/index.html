@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restore your NSD-S3 signer</title>
+<meta name="description" content="Restore an NSD-S3 (LilyGo T-Display S3) hardware Nostr signer from its 12-word backup, straight from Chrome.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8IS0tIGZsaW5rIG1hcms6IHRocmVlICI+IiBjaGV2cm9ucyB0cmFpbGluZyBvZmYsIGJyaWdodGVzdCBhdCB0aGUgbGVhZGluZyBlZGdlIC0tPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iOTIiIGZpbGw9IiMxNzEwMmEiLz4KICA8ZyBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjQ2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgogICAgPHBhdGggZD0iTTY4IDEyNCBMMTU0IDI1NiBMNjggMzg4IiBzdHJva2U9IiM2ZDI4ZDkiLz4KICAgIDxwYXRoIGQ9Ik0xODggMTI0IEwyNzQgMjU2IEwxODggMzg4IiBzdHJva2U9IiNhNzhiZmEiLz4KICAgIDxwYXRoIGQ9Ik0zMDggMTI0IEwzOTQgMjU2IEwzMDggMzg4IiBzdHJva2U9IiNjNGI1ZmQiLz4KICA8L2c+Cjwvc3ZnPgo=">
+<style>
+  :root{
+    --bg:#ffffff; --text:#111111; --muted:#666666; --accent:#7c3aed;
+    --accent-text:#ffffff; --border:#e4e4e7; --card:#f9f8fc; --warn:#b45309; --warn-bg:#fff7ed;
+    --danger:#b91c1c; --danger-bg:#fef2f2; --ok:#15803d; --ok-bg:#f0fdf4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#111114; --text:#eeeeee; --muted:#a1a1aa; --accent:#a78bfa;
+      --accent-text:#141018; --border:#2a2a30; --card:#18181d; --warn:#fbbf24; --warn-bg:#2a2010;
+      --danger:#f87171; --danger-bg:#2a1414; --ok:#4ade80; --ok-bg:#132015; }
+  }
+  :root[data-theme="dark"]{ --bg:#111114; --text:#eeeeee; --muted:#a1a1aa; --accent:#a78bfa;
+    --accent-text:#141018; --border:#2a2a30; --card:#18181d; --warn:#fbbf24; --warn-bg:#2a2010;
+    --danger:#f87171; --danger-bg:#2a1414; --ok:#4ade80; --ok-bg:#132015; }
+  :root[data-theme="light"]{ --bg:#ffffff; --text:#111111; --muted:#666666; --accent:#7c3aed;
+    --accent-text:#ffffff; --border:#e4e4e7; --card:#f9f8fc; --warn:#b45309; --warn-bg:#fff7ed;
+    --danger:#b91c1c; --danger-bg:#fef2f2; --ok:#15803d; --ok-bg:#f0fdf4; }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:32px 20px 80px}
+  header{margin-bottom:28px}
+  .logo{font-weight:800; font-size:22px; letter-spacing:-.5px; color:var(--accent); display:inline-flex; align-items:center; gap:8px}
+  .logo .mark{height:1.3em; width:1.3em; flex:none}
+  .logo .mark path{animation:flinkflow 1.8s ease-in-out infinite}
+  .logo .mark .f2{animation-delay:.12s}
+  .logo .mark .f3{animation-delay:.24s}
+  @keyframes flinkflow{0%,100%{opacity:.45} 50%{opacity:1}}
+  @media (prefers-reduced-motion: reduce){ .logo .mark path{animation:none} }
+  h1{font-size:26px; margin:14px 0 6px; letter-spacing:-.3px}
+  .sub{color:var(--muted); margin:0 0 4px; font-size:15px}
+  a{color:var(--accent)}
+
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:22px; margin:22px 0;
+  }
+  button.primary, a.primary{
+    background:var(--accent); color:var(--accent-text); border:none;
+    border-radius:999px; padding:12px 26px; font-size:16px; font-weight:600;
+    cursor:pointer; font-family:inherit; text-decoration:none; display:inline-block;
+  }
+  button.primary:hover, a.primary:hover{filter:brightness(1.06)}
+  button.primary:disabled{opacity:.45; cursor:not-allowed; filter:none}
+  button.secondary{
+    background:transparent; color:var(--accent); border:1px solid var(--accent);
+    border-radius:999px; padding:10px 20px; font-size:14px; font-weight:600;
+    cursor:pointer; font-family:inherit;
+  }
+
+  .warn, .danger, .ok-box{
+    border-radius:10px; padding:14px 16px; font-size:14px; margin:16px 0; border:1px solid var(--border);
+  }
+  .warn{background:var(--warn-bg); color:var(--warn)}
+  .danger{background:var(--danger-bg); color:var(--danger)}
+  .ok-box{background:var(--ok-bg); color:var(--ok)}
+
+  .meta{color:var(--muted); font-size:13px; margin-top:4px}
+  code{
+    background:var(--card); border:1px solid var(--border); border-radius:5px;
+    padding:1px 6px; font-size:12.5px; word-break:break-all;
+  }
+
+  h2{font-size:17px; margin:0 0 8px}
+  ul{margin:8px 0; padding-left:20px}
+  li{margin:5px 0}
+  footer{margin-top:40px; color:var(--muted); font-size:13px; border-top:1px solid var(--border); padding-top:18px}
+
+  .grid12{display:grid; grid-template-columns:repeat(2, 1fr); gap:10px 16px; margin:18px 0}
+  @media (min-width:480px){ .grid12{grid-template-columns:repeat(3, 1fr)} }
+  .word-field{position:relative}
+  .word-field label{display:block; font-size:12px; color:var(--muted); margin-bottom:3px}
+  .word-field input{
+    width:100%; padding:8px 10px; font-size:15px; font-family:ui-monospace,monospace;
+    border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text);
+  }
+  .word-field input.valid{border-color:var(--ok)}
+  .word-field input.invalid{border-color:var(--danger)}
+  .suggest{
+    position:absolute; bottom:100%; left:0; right:0; z-index:20; margin-bottom:2px;
+    background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    max-height:180px; overflow-y:auto; box-shadow:0 -6px 20px rgba(0,0,0,.15);
+  }
+  .suggest div{padding:7px 10px; font-size:14px; font-family:ui-monospace,monospace; cursor:pointer}
+  .suggest div:hover, .suggest div.active{background:var(--card); color:var(--accent)}
+
+  .status-line{display:flex; align-items:center; gap:10px; margin:14px 0}
+  .spinner{
+    width:16px; height:16px; border-radius:50%; flex:none;
+    border:2px solid var(--border); border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .npub-box{
+    font-family:ui-monospace,monospace; font-size:14px; word-break:break-all;
+    background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin:10px 0;
+  }
+  .hidden{display:none !important}
+  .field-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px}
+
+  .word-field.active input{
+    border-color:var(--accent); box-shadow:0 0 0 2px rgba(124,58,237,.18);
+  }
+  .keyboard{display:flex; flex-wrap:wrap; gap:6px; margin:16px 0}
+  .keyboard .key{
+    flex:0 0 auto; width:38px; height:38px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-family:ui-monospace,monospace; font-size:15px;
+    font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    text-transform:uppercase; padding:0;
+  }
+  .keyboard .key:hover{background:var(--card)}
+  .keyboard .key:active{filter:brightness(.92)}
+  .keyboard .key-back{width:auto; padding:0 14px; background:var(--card); font-size:13px; text-transform:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg class="mark" viewBox="0 0 512 512" fill="none" aria-hidden="true">
+        <rect width="512" height="512" rx="92" fill="#17102a"/>
+        <g stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+          <path class="f1" d="M68 124 L154 256 L68 388" stroke="#6d28d9"/>
+          <path class="f2" d="M188 124 L274 256 L188 388" stroke="#a78bfa"/>
+          <path class="f3" d="M308 124 L394 256 L308 388" stroke="#c4b5fd"/>
+        </g>
+      </svg>
+      flink
+    </div>
+    <h1>Restore your NSD-S3 signer</h1>
+    <p class="sub">NSD-S3 is a hardware Nostr signer built on the <strong>LilyGo T-Display S3</strong>
+      (ESP32-S3, 1.9" display, native USB) — your private key lives on the board itself and
+      never touches a computer. This page is for a <strong>completely fresh / wiped</strong>
+      board. After connecting you'll need to tap RESTORE on the device itself before it accepts
+      anything — then enter your 12-word backup here with search-as-you-type; the device derives
+      the key and never sends it back over serial.</p>
+  </header>
+
+  <div class="warn">
+    Works in <strong>Chrome or Edge on desktop</strong> only (WebSerial). If the device already
+    has a key, you'll be offered the chance to erase it here first — only do that if you meant to
+    overwrite it; use the on-device REVEAL flow instead to check backups of an existing key.
+  </div>
+
+  <div class="warn">
+    Your 12 words pass through this browser tab's memory while you type them (same
+    one-time trust as the on-device serial <code>/restore-words</code> command they call).
+    Only do this on a computer you trust, and only for words you're deliberately restoring
+    right now — never leave this page open afterward.
+  </div>
+
+  <div class="card" id="connect-card">
+    <div class="field-row">
+      <button class="primary" id="btn-connect">Connect device</button>
+      <span class="meta" id="connect-status">Not connected.</span>
+    </div>
+  </div>
+
+  <div class="card hidden" id="haskey-card">
+    <div class="danger">
+      This device already has a key on it (<span id="haskey-detail"></span>). Restoring means
+      wiping that key first — only do this if you meant to overwrite it.
+    </div>
+    <div class="field-row">
+      <button class="primary" id="btn-erase">Erase device</button>
+      <span class="meta" id="erase-status">Wipes just the key — the device stays fully working, no reflash needed.</span>
+    </div>
+    <p class="meta">Alternatively, a full <a href="https://flash.flink.club" target="_blank" rel="noopener">reflash at flash.flink.club</a>
+      also erases the key (along with everything else) — only useful if the firmware itself needs
+      reinstalling.</p>
+  </div>
+
+  <div class="card hidden" id="erase-wait-card">
+    <h2>Confirm on the device</h2>
+    <p>The device is now showing <strong>ERASE?</strong>. Hold the button next to
+      <strong>HOLD ERASE &gt;</strong> for 3 seconds to actually wipe the key — or tap
+      <strong>CANCEL &gt;</strong> on the device to back out.</p>
+    <div class="status-line"><div class="spinner"></div><span>Waiting for the device…</span></div>
+  </div>
+
+  <div class="card hidden" id="arm-card">
+    <h2>Press RESTORE on the device</h2>
+    <p>The device won't accept words until you confirm this in person. On its screen, tap the
+      button next to <strong>RESTORE &gt;</strong> — you have 5 minutes once you do.</p>
+    <div class="status-line"><div class="spinner"></div><span>Waiting for the device…</span></div>
+  </div>
+
+  <div class="card hidden" id="words-card">
+    <h2>Enter your 12 backup words</h2>
+    <p class="meta">Tap a word box to select it, then spell it out on the on-screen keyboard below —
+      the letters shuffle to a new layout for each word, so a keylogger or shoulder-surfer can't
+      build a map of key positions across your whole backup. Matching suggestions appear as you go;
+      click one to confirm it and move to the next word. All 12 must be exact, valid BIP-39 words
+      before Restore unlocks.</p>
+    <div class="grid12" id="word-grid"></div>
+    <div id="keyboard" class="keyboard" role="group" aria-label="Scrambled on-screen keyboard"></div>
+    <div class="field-row">
+      <button class="primary" id="btn-restore" disabled>Restore</button>
+      <span class="meta" id="restore-status"></span>
+    </div>
+  </div>
+
+  <div class="card hidden" id="pin-card">
+    <h2>Now set a PIN on the device</h2>
+    <p>Words accepted. The device is showing <strong>SET PIN</strong> on its screen — choose a
+      6-digit PIN using its own buttons (BOTTOM cycles 0–9, TOP confirms each digit), then enter
+      the same PIN again to confirm. Your PIN never touches this page.</p>
+    <div class="status-line"><div class="spinner"></div><span>Waiting for the device…</span></div>
+  </div>
+
+  <div class="card hidden" id="done-card">
+    <div class="ok-box">Restore complete — the device now has a key.</div>
+    <p class="meta">Compare this against the npub you expected:</p>
+    <div class="npub-box" id="npub-out"></div>
+    <div class="npub-box" id="hex-out"></div>
+    <button class="secondary" id="btn-copy-npub">Copy npub</button>
+  </div>
+
+  <div class="card hidden" id="err-card">
+    <div class="danger" id="err-detail"></div>
+    <button class="secondary" id="btn-retry">Try again</button>
+  </div>
+
+  <footer>
+    <p>Companion to the <a href="https://flash.flink.club">NSD web flasher</a>. Firmware source:
+      <a href="https://github.com/TuvokSeed/nsd-s3">github.com/TuvokSeed/nsd-s3</a>.</p>
+  </footer>
+</div>
+
+<script>
+// Canonical BIP-39 English wordlist (2048 words), extracted verbatim from the same
+// utility/trezor/bip39_english.h the device firmware itself uses — guarantees the
+// autocomplete list can never drift from what the device will actually accept.
+var WORDLIST = ["abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access","accident","account","accuse","achieve","acid","acoustic","acquire","across","act","action","actor","actress","actual","adapt","add","addict","address","adjust","admit","adult","advance","advice","aerobic","affair","afford","afraid","again","age","agent","agree","ahead","aim","air","airport","aisle","alarm","album","alcohol","alert","alien","all","alley","allow","almost","alone","alpha","already","also","alter","always","amateur","amazing","among","amount","amused","analyst","anchor","ancient","anger","angle","angry","animal","ankle","announce","annual","another","answer","antenna","antique","anxiety","any","apart","apology","appear","apple","approve","april","arch","arctic","area","arena","argue","arm","armed","armor","army","around","arrange","arrest","arrive","arrow","art","artefact","artist","artwork","ask","aspect","assault","asset","assist","assume","asthma","athlete","atom","attack","attend","attitude","attract","auction","audit","august","aunt","author","auto","autumn","average","avocado","avoid","awake","aware","away","awesome","awful","awkward","axis","baby","bachelor","bacon","badge","bag","balance","balcony","ball","bamboo","banana","banner","bar","barely","bargain","barrel","base","basic","basket","battle","beach","bean","beauty","because","become","beef","before","begin","behave","behind","believe","below","belt","bench","benefit","best","betray","better","between","beyond","bicycle","bid","bike","bind","biology","bird","birth","bitter","black","blade","blame","blanket","blast","bleak","bless","blind","blood","blossom","blouse","blue","blur","blush","board","boat","body","boil","bomb","bone","bonus","book","boost","border","boring","borrow","boss","bottom","bounce","box","boy","bracket","brain","brand","brass","brave","bread","breeze","brick","bridge","brief","bright","bring","brisk","broccoli","broken","bronze","broom","brother","brown","brush","bubble","buddy","budget","buffalo","build","bulb","bulk","bullet","bundle","bunker","burden","burger","burst","bus","business","busy","butter","buyer","buzz","cabbage","cabin","cable","cactus","cage","cake","call","calm","camera","camp","can","canal","cancel","candy","cannon","canoe","canvas","canyon","capable","capital","captain","car","carbon","card","cargo","carpet","carry","cart","case","cash","casino","castle","casual","cat","catalog","catch","category","cattle","caught","cause","caution","cave","ceiling","celery","cement","census","century","cereal","certain","chair","chalk","champion","change","chaos","chapter","charge","chase","chat","cheap","check","cheese","chef","cherry","chest","chicken","chief","child","chimney","choice","choose","chronic","chuckle","chunk","churn","cigar","cinnamon","circle","citizen","city","civil","claim","clap","clarify","claw","clay","clean","clerk","clever","click","client","cliff","climb","clinic","clip","clock","clog","close","cloth","cloud","clown","club","clump","cluster","clutch","coach","coast","coconut","code","coffee","coil","coin","collect","color","column","combine","come","comfort","comic","common","company","concert","conduct","confirm","congress","connect","consider","control","convince","cook","cool","copper","copy","coral","core","corn","correct","cost","cotton","couch","country","couple","course","cousin","cover","coyote","crack","cradle","craft","cram","crane","crash","crater","crawl","crazy","cream","credit","creek","crew","cricket","crime","crisp","critic","crop","cross","crouch","crowd","crucial","cruel","cruise","crumble","crunch","crush","cry","crystal","cube","culture","cup","cupboard","curious","current","curtain","curve","cushion","custom","cute","cycle","dad","damage","damp","dance","danger","daring","dash","daughter","dawn","day","deal","debate","debris","decade","december","decide","decline","decorate","decrease","deer","defense","define","defy","degree","delay","deliver","demand","demise","denial","dentist","deny","depart","depend","deposit","depth","deputy","derive","describe","desert","design","desk","despair","destroy","detail","detect","develop","device","devote","diagram","dial","diamond","diary","dice","diesel","diet","differ","digital","dignity","dilemma","dinner","dinosaur","direct","dirt","disagree","discover","disease","dish","dismiss","disorder","display","distance","divert","divide","divorce","dizzy","doctor","document","dog","doll","dolphin","domain","donate","donkey","donor","door","dose","double","dove","draft","dragon","drama","drastic","draw","dream","dress","drift","drill","drink","drip","drive","drop","drum","dry","duck","dumb","dune","during","dust","dutch","duty","dwarf","dynamic","eager","eagle","early","earn","earth","easily","east","easy","echo","ecology","economy","edge","edit","educate","effort","egg","eight","either","elbow","elder","electric","elegant","element","elephant","elevator","elite","else","embark","embody","embrace","emerge","emotion","employ","empower","empty","enable","enact","end","endless","endorse","enemy","energy","enforce","engage","engine","enhance","enjoy","enlist","enough","enrich","enroll","ensure","enter","entire","entry","envelope","episode","equal","equip","era","erase","erode","erosion","error","erupt","escape","essay","essence","estate","eternal","ethics","evidence","evil","evoke","evolve","exact","example","excess","exchange","excite","exclude","excuse","execute","exercise","exhaust","exhibit","exile","exist","exit","exotic","expand","expect","expire","explain","expose","express","extend","extra","eye","eyebrow","fabric","face","faculty","fade","faint","faith","fall","false","fame","family","famous","fan","fancy","fantasy","farm","fashion","fat","fatal","father","fatigue","fault","favorite","feature","february","federal","fee","feed","feel","female","fence","festival","fetch","fever","few","fiber","fiction","field","figure","file","film","filter","final","find","fine","finger","finish","fire","firm","first","fiscal","fish","fit","fitness","fix","flag","flame","flash","flat","flavor","flee","flight","flip","float","flock","floor","flower","fluid","flush","fly","foam","focus","fog","foil","fold","follow","food","foot","force","forest","forget","fork","fortune","forum","forward","fossil","foster","found","fox","fragile","frame","frequent","fresh","friend","fringe","frog","front","frost","frown","frozen","fruit","fuel","fun","funny","furnace","fury","future","gadget","gain","galaxy","gallery","game","gap","garage","garbage","garden","garlic","garment","gas","gasp","gate","gather","gauge","gaze","general","genius","genre","gentle","genuine","gesture","ghost","giant","gift","giggle","ginger","giraffe","girl","give","glad","glance","glare","glass","glide","glimpse","globe","gloom","glory","glove","glow","glue","goat","goddess","gold","good","goose","gorilla","gospel","gossip","govern","gown","grab","grace","grain","grant","grape","grass","gravity","great","green","grid","grief","grit","grocery","group","grow","grunt","guard","guess","guide","guilt","guitar","gun","gym","habit","hair","half","hammer","hamster","hand","happy","harbor","hard","harsh","harvest","hat","have","hawk","hazard","head","health","heart","heavy","hedgehog","height","hello","helmet","help","hen","hero","hidden","high","hill","hint","hip","hire","history","hobby","hockey","hold","hole","holiday","hollow","home","honey","hood","hope","horn","horror","horse","hospital","host","hotel","hour","hover","hub","huge","human","humble","humor","hundred","hungry","hunt","hurdle","hurry","hurt","husband","hybrid","ice","icon","idea","identify","idle","ignore","ill","illegal","illness","image","imitate","immense","immune","impact","impose","improve","impulse","inch","include","income","increase","index","indicate","indoor","industry","infant","inflict","inform","inhale","inherit","initial","inject","injury","inmate","inner","innocent","input","inquiry","insane","insect","inside","inspire","install","intact","interest","into","invest","invite","involve","iron","island","isolate","issue","item","ivory","jacket","jaguar","jar","jazz","jealous","jeans","jelly","jewel","job","join","joke","journey","joy","judge","juice","jump","jungle","junior","junk","just","kangaroo","keen","keep","ketchup","key","kick","kid","kidney","kind","kingdom","kiss","kit","kitchen","kite","kitten","kiwi","knee","knife","knock","know","lab","label","labor","ladder","lady","lake","lamp","language","laptop","large","later","latin","laugh","laundry","lava","law","lawn","lawsuit","layer","lazy","leader","leaf","learn","leave","lecture","left","leg","legal","legend","leisure","lemon","lend","length","lens","leopard","lesson","letter","level","liar","liberty","library","license","life","lift","light","like","limb","limit","link","lion","liquid","list","little","live","lizard","load","loan","lobster","local","lock","logic","lonely","long","loop","lottery","loud","lounge","love","loyal","lucky","luggage","lumber","lunar","lunch","luxury","lyrics","machine","mad","magic","magnet","maid","mail","main","major","make","mammal","man","manage","mandate","mango","mansion","manual","maple","marble","march","margin","marine","market","marriage","mask","mass","master","match","material","math","matrix","matter","maximum","maze","meadow","mean","measure","meat","mechanic","medal","media","melody","melt","member","memory","mention","menu","mercy","merge","merit","merry","mesh","message","metal","method","middle","midnight","milk","million","mimic","mind","minimum","minor","minute","miracle","mirror","misery","miss","mistake","mix","mixed","mixture","mobile","model","modify","mom","moment","monitor","monkey","monster","month","moon","moral","more","morning","mosquito","mother","motion","motor","mountain","mouse","move","movie","much","muffin","mule","multiply","muscle","museum","mushroom","music","must","mutual","myself","mystery","myth","naive","name","napkin","narrow","nasty","nation","nature","near","neck","need","negative","neglect","neither","nephew","nerve","nest","net","network","neutral","never","news","next","nice","night","noble","noise","nominee","noodle","normal","north","nose","notable","note","nothing","notice","novel","now","nuclear","number","nurse","nut","oak","obey","object","oblige","obscure","observe","obtain","obvious","occur","ocean","october","odor","off","offer","office","often","oil","okay","old","olive","olympic","omit","once","one","onion","online","only","open","opera","opinion","oppose","option","orange","orbit","orchard","order","ordinary","organ","orient","original","orphan","ostrich","other","outdoor","outer","output","outside","oval","oven","over","own","owner","oxygen","oyster","ozone","pact","paddle","page","pair","palace","palm","panda","panel","panic","panther","paper","parade","parent","park","parrot","party","pass","patch","path","patient","patrol","pattern","pause","pave","payment","peace","peanut","pear","peasant","pelican","pen","penalty","pencil","people","pepper","perfect","permit","person","pet","phone","photo","phrase","physical","piano","picnic","picture","piece","pig","pigeon","pill","pilot","pink","pioneer","pipe","pistol","pitch","pizza","place","planet","plastic","plate","play","please","pledge","pluck","plug","plunge","poem","poet","point","polar","pole","police","pond","pony","pool","popular","portion","position","possible","post","potato","pottery","poverty","powder","power","practice","praise","predict","prefer","prepare","present","pretty","prevent","price","pride","primary","print","priority","prison","private","prize","problem","process","produce","profit","program","project","promote","proof","property","prosper","protect","proud","provide","public","pudding","pull","pulp","pulse","pumpkin","punch","pupil","puppy","purchase","purity","purpose","purse","push","put","puzzle","pyramid","quality","quantum","quarter","question","quick","quit","quiz","quote","rabbit","raccoon","race","rack","radar","radio","rail","rain","raise","rally","ramp","ranch","random","range","rapid","rare","rate","rather","raven","raw","razor","ready","real","reason","rebel","rebuild","recall","receive","recipe","record","recycle","reduce","reflect","reform","refuse","region","regret","regular","reject","relax","release","relief","rely","remain","remember","remind","remove","render","renew","rent","reopen","repair","repeat","replace","report","require","rescue","resemble","resist","resource","response","result","retire","retreat","return","reunion","reveal","review","reward","rhythm","rib","ribbon","rice","rich","ride","ridge","rifle","right","rigid","ring","riot","ripple","risk","ritual","rival","river","road","roast","robot","robust","rocket","romance","roof","rookie","room","rose","rotate","rough","round","route","royal","rubber","rude","rug","rule","run","runway","rural","sad","saddle","sadness","safe","sail","salad","salmon","salon","salt","salute","same","sample","sand","satisfy","satoshi","sauce","sausage","save","say","scale","scan","scare","scatter","scene","scheme","school","science","scissors","scorpion","scout","scrap","screen","script","scrub","sea","search","season","seat","second","secret","section","security","seed","seek","segment","select","sell","seminar","senior","sense","sentence","series","service","session","settle","setup","seven","shadow","shaft","shallow","share","shed","shell","sheriff","shield","shift","shine","ship","shiver","shock","shoe","shoot","shop","short","shoulder","shove","shrimp","shrug","shuffle","shy","sibling","sick","side","siege","sight","sign","silent","silk","silly","silver","similar","simple","since","sing","siren","sister","situate","six","size","skate","sketch","ski","skill","skin","skirt","skull","slab","slam","sleep","slender","slice","slide","slight","slim","slogan","slot","slow","slush","small","smart","smile","smoke","smooth","snack","snake","snap","sniff","snow","soap","soccer","social","sock","soda","soft","solar","soldier","solid","solution","solve","someone","song","soon","sorry","sort","soul","sound","soup","source","south","space","spare","spatial","spawn","speak","special","speed","spell","spend","sphere","spice","spider","spike","spin","spirit","split","spoil","sponsor","spoon","sport","spot","spray","spread","spring","spy","square","squeeze","squirrel","stable","stadium","staff","stage","stairs","stamp","stand","start","state","stay","steak","steel","stem","step","stereo","stick","still","sting","stock","stomach","stone","stool","story","stove","strategy","street","strike","strong","struggle","student","stuff","stumble","style","subject","submit","subway","success","such","sudden","suffer","sugar","suggest","suit","summer","sun","sunny","sunset","super","supply","supreme","sure","surface","surge","surprise","surround","survey","suspect","sustain","swallow","swamp","swap","swarm","swear","sweet","swift","swim","swing","switch","sword","symbol","symptom","syrup","system","table","tackle","tag","tail","talent","talk","tank","tape","target","task","taste","tattoo","taxi","teach","team","tell","ten","tenant","tennis","tent","term","test","text","thank","that","theme","then","theory","there","they","thing","this","thought","three","thrive","throw","thumb","thunder","ticket","tide","tiger","tilt","timber","time","tiny","tip","tired","tissue","title","toast","tobacco","today","toddler","toe","together","toilet","token","tomato","tomorrow","tone","tongue","tonight","tool","tooth","top","topic","topple","torch","tornado","tortoise","toss","total","tourist","toward","tower","town","toy","track","trade","traffic","tragic","train","transfer","trap","trash","travel","tray","treat","tree","trend","trial","tribe","trick","trigger","trim","trip","trophy","trouble","truck","true","truly","trumpet","trust","truth","try","tube","tuition","tumble","tuna","tunnel","turkey","turn","turtle","twelve","twenty","twice","twin","twist","two","type","typical","ugly","umbrella","unable","unaware","uncle","uncover","under","undo","unfair","unfold","unhappy","uniform","unique","unit","universe","unknown","unlock","until","unusual","unveil","update","upgrade","uphold","upon","upper","upset","urban","urge","usage","use","used","useful","useless","usual","utility","vacant","vacuum","vague","valid","valley","valve","van","vanish","vapor","various","vast","vault","vehicle","velvet","vendor","venture","venue","verb","verify","version","very","vessel","veteran","viable","vibrant","vicious","victory","video","view","village","vintage","violin","virtual","virus","visa","visit","visual","vital","vivid","vocal","voice","void","volcano","volume","vote","voyage","wage","wagon","wait","walk","wall","walnut","want","warfare","warm","warrior","wash","wasp","waste","water","wave","way","wealth","weapon","wear","weasel","weather","web","wedding","weekend","weird","welcome","west","wet","whale","what","wheat","wheel","when","where","whip","whisper","wide","width","wife","wild","will","win","window","wine","wing","wink","winner","winter","wire","wisdom","wise","wish","witness","wolf","woman","wonder","wood","wool","word","work","world","worry","worth","wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you","young","youth","zebra","zero","zone","zoo"];
+
+// --- bech32 (BIP-173) npub encode, ported 1:1 from src/bech32.cpp so this page
+// produces byte-identical output to the device's own /npub reply. ---
+function bech32Encode(hrp, data /* Uint8Array */) {
+  var CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+  var GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+  function polymod(values) {
+    var chk = 1;
+    for (var i = 0; i < values.length; i++) {
+      var top = chk >>> 25;
+      chk = ((chk & 0x1ffffff) << 5) ^ values[i];
+      for (var j = 0; j < 5; j++) if ((top >>> j) & 1) chk ^= GEN[j];
+    }
+    return chk >>> 0;
+  }
+  var data5 = [];
+  var acc = 0, bits = 0;
+  for (var i = 0; i < data.length; i++) {
+    acc = ((acc << 8) | data[i]) >>> 0;
+    bits += 8;
+    while (bits >= 5) { bits -= 5; data5.push((acc >>> bits) & 31); }
+  }
+  if (bits > 0) data5.push((acc << (5 - bits)) & 31);
+
+  var values = [];
+  for (var i = 0; i < hrp.length; i++) values.push(hrp.charCodeAt(i) >> 5);
+  values.push(0);
+  for (var i = 0; i < hrp.length; i++) values.push(hrp.charCodeAt(i) & 31);
+  for (var i = 0; i < data5.length; i++) values.push(data5[i]);
+  for (var i = 0; i < 6; i++) values.push(0);
+  var chk = (polymod(values) ^ 1) >>> 0;
+
+  var out = hrp + "1";
+  for (var i = 0; i < data5.length; i++) out += CHARSET[data5[i]];
+  for (var i = 0; i < 6; i++) out += CHARSET[(chk >>> (5 * (5 - i))) & 31];
+  return out;
+}
+function hexToBytes(hex) {
+  var out = new Uint8Array(hex.length / 2);
+  for (var i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+
+// --- WebSerial link to the device, same protocol/pattern as flink's nsd-signer.js ---
+var port = null, writer = null, reader = null, readBuf = "";
+var pending = null;
+
+function send(line) { return writer.write(new TextEncoder().encode(line + "\n")); }
+
+function handleLine(line) {
+  var sp = line.indexOf(" ");
+  var method = sp > 0 ? line.slice(0, sp) : line;
+  var data = sp > 0 ? line.slice(sp + 1).trim() : "";
+  if (pending && method === pending.method) {
+    var pd = pending; pending = null;
+    clearTimeout(pd.timer);
+    pd.resolve(data);
+  }
+}
+
+function readLoop(p) {
+  var dec = new TextDecoder();
+  reader = p.readable.getReader();
+  function pump() {
+    reader.read().then(function (r) {
+      if (r.done) return;
+      readBuf += dec.decode(r.value, { stream: true });
+      var i;
+      while ((i = readBuf.indexOf("\n")) >= 0) {
+        var line = readBuf.slice(0, i).replace(/\r$/, "").trim();
+        readBuf = readBuf.slice(i + 1);
+        if (line) handleLine(line);
+      }
+      pump();
+    }).catch(function () {});
+  }
+  pump();
+}
+
+function call(method, arg, waitMs) {
+  if (pending) return Promise.reject(new Error("another device request is pending"));
+  return new Promise(function (resolve, reject) {
+    pending = {
+      method: method, resolve: resolve, reject: reject,
+      timer: setTimeout(function () {
+        if (!pending) return;
+        pending = null;
+        reject(new Error("no answer from device"));
+      }, waitMs || 5000)
+    };
+    send(method + (arg ? " " + arg : "")).catch(function (e) {
+      if (pending) { clearTimeout(pending.timer); pending = null; }
+      reject(e);
+    });
+  });
+}
+
+var deviceId = "", deviceVersion = "";
+
+function connectDevice() {
+  return navigator.serial.requestPort().then(function (p) {
+    return p.open({ baudRate: 115200 }).then(function () {
+      port = p;
+      writer = p.writable.getWriter();
+      readLoop(p);
+      return send("/ping"); // flush any stale boot-banner line
+    }).then(function () {
+      // Fixed identity, not location.host: this sets the device's "paired
+      // host" (shown on its MAIN screen after setup) and should read
+      // recover.flink.club regardless of where this page is actually being
+      // served from right now (localhost while testing, a staging host, etc).
+      return call("/ping", "recover.flink.club", 5000);
+    }).then(function (pingResp) {
+      // "0 nsd-s3-<mac hex>" -- only a real NSD replies to /ping like this,
+      // which is what actually confirms the chosen serial port is the board,
+      // not just any device the OS happened to list
+      var sp = pingResp.indexOf(" ");
+      deviceId = sp > 0 ? pingResp.slice(sp + 1) : pingResp;
+      return call("/version", null, 3000);
+    }).then(function (verResp) {
+      deviceVersion = verResp; // "nostr-signer-s3 v0.0.7"
+      return call("/public-key", null, 5000);
+    });
+  });
+}
+
+// --- UI wiring ---
+var $ = function (id) { return document.getElementById(id); };
+var wordInputs = [];
+var wordApi = [];
+var activeIdx = -1; // which of the 12 word slots the on-screen keyboard types into
+
+function buildWordGrid() {
+  var grid = $("word-grid");
+  for (var i = 0; i < 12; i++) {
+    var field = document.createElement("div");
+    field.className = "word-field";
+    var label = document.createElement("label");
+    label.textContent = "Word " + (i + 1);
+    var input = document.createElement("input");
+    // readonly: entry only happens via the scrambled on-screen keyboard below,
+    // so a physical-keyboard logger never sees which letters were typed
+    input.readOnly = true;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.dataset.idx = i;
+    var suggest = document.createElement("div");
+    suggest.className = "suggest hidden";
+    field.appendChild(label);
+    field.appendChild(input);
+    field.appendChild(suggest);
+    grid.appendChild(field);
+    wordInputs.push(input);
+    wordApi.push(wireWordInput(field, input, suggest, i));
+  }
+  renderKeyboard();
+  activateWord(0);
+}
+
+function wireWordInput(field, input, suggest, idx) {
+  var activeSuggestIdx = -1;
+
+  function matches() {
+    var v = input.value.trim().toLowerCase();
+    if (!v) return [];
+    var out = [];
+    for (var i = 0; i < WORDLIST.length && out.length < 8; i++) {
+      if (WORDLIST[i].indexOf(v) === 0) out.push(WORDLIST[i]);
+    }
+    return out;
+  }
+
+  function renderSuggest() {
+    var m = matches();
+    activeSuggestIdx = -1;
+    if (!m.length) { suggest.classList.add("hidden"); suggest.innerHTML = ""; return; }
+    suggest.innerHTML = "";
+    m.forEach(function (w) {
+      var d = document.createElement("div");
+      d.textContent = w;
+      d.addEventListener("mousedown", function (e) { e.preventDefault(); pick(w); });
+      suggest.appendChild(d);
+    });
+    suggest.classList.remove("hidden");
+  }
+
+  function pick(word) {
+    input.value = word;
+    suggest.classList.add("hidden");
+    suggest.innerHTML = "";
+    markValidity();
+    checkAllValid();
+    var nextIdx = idx + 1;
+    if (nextIdx < wordApi.length) activateWord(nextIdx);
+    else renderKeyboard();
+  }
+
+  function markValidity() {
+    var v = input.value.trim().toLowerCase();
+    input.classList.remove("valid", "invalid");
+    if (!v) return;
+    if (WORDLIST.indexOf(v) >= 0) input.classList.add("valid");
+    else input.classList.add("invalid");
+  }
+
+  input.addEventListener("click", function () { activateWord(idx); });
+  input.addEventListener("blur", function () {
+    setTimeout(function () { suggest.classList.add("hidden"); }, 120);
+  });
+  input.addEventListener("keydown", function (e) {
+    var items = suggest.querySelectorAll("div");
+    if (e.key === "ArrowDown" && items.length) {
+      e.preventDefault();
+      activeSuggestIdx = Math.min(activeSuggestIdx + 1, items.length - 1);
+      items.forEach(function (it, i) { it.classList.toggle("active", i === activeSuggestIdx); });
+    } else if (e.key === "ArrowUp" && items.length) {
+      e.preventDefault();
+      activeSuggestIdx = Math.max(activeSuggestIdx - 1, 0);
+      items.forEach(function (it, i) { it.classList.toggle("active", i === activeSuggestIdx); });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeSuggestIdx >= 0 && items[activeSuggestIdx]) pick(items[activeSuggestIdx].textContent);
+      else if (items.length === 1) pick(items[0].textContent);
+    } else if (e.key === "Backspace") {
+      e.preventDefault();
+      backspaceKey();
+    }
+  });
+
+  return { input: input, field: field, renderSuggest: renderSuggest, markValidity: markValidity };
+}
+
+function activateWord(idx) {
+  activeIdx = idx;
+  wordApi.forEach(function (a, i) { a.field.classList.toggle("active", i === idx); });
+  wordApi[idx].input.focus({ preventScroll: true });
+  renderKeyboard();
+}
+
+function shuffledLetters() {
+  var letters = "abcdefghijklmnopqrstuvwxyz".split("");
+  for (var i = letters.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = letters[i]; letters[i] = letters[j]; letters[j] = tmp;
+  }
+  return letters;
+}
+
+function renderKeyboard() {
+  var kb = $("keyboard");
+  kb.innerHTML = "";
+  shuffledLetters().forEach(function (ch) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "key";
+    b.textContent = ch;
+    b.addEventListener("click", function () { typeLetter(ch); });
+    kb.appendChild(b);
+  });
+  var back = document.createElement("button");
+  back.type = "button";
+  back.className = "key key-back";
+  back.textContent = "⌫ delete";
+  back.addEventListener("click", backspaceKey);
+  kb.appendChild(back);
+}
+
+// Layout stays fixed while typing a word -- reshuffling happens only on
+// activateWord() (a new word starts), not per letter: scrambling every
+// keystroke made it hard to type at any speed, since the whole keyboard had
+// to be re-scanned for each letter.
+function typeLetter(ch) {
+  if (activeIdx < 0) return;
+  var api = wordApi[activeIdx];
+  api.input.value += ch;
+  api.markValidity();
+  api.renderSuggest();
+  checkAllValid();
+}
+
+function backspaceKey() {
+  if (activeIdx < 0) return;
+  var api = wordApi[activeIdx];
+  api.input.value = api.input.value.slice(0, -1);
+  api.markValidity();
+  api.renderSuggest();
+  checkAllValid();
+}
+
+function checkAllValid() {
+  var ok = wordInputs.every(function (inp) {
+    return WORDLIST.indexOf(inp.value.trim().toLowerCase()) >= 0;
+  });
+  $("btn-restore").disabled = !ok;
+}
+
+// connect-card is deliberately NOT in this list -- once connected, it stays
+// visible as a standing confirmation of which physical device is talking,
+// through every later step.
+function showCard(id) {
+  ["haskey-card", "erase-wait-card", "arm-card", "words-card", "pin-card", "done-card", "err-card"].forEach(function (c) {
+    $(c).classList.toggle("hidden", c !== id);
+  });
+}
+
+function showError(msg) {
+  $("err-detail").textContent = msg;
+  showCard("err-card");
+}
+
+$("btn-connect").addEventListener("click", function () {
+  if (!("serial" in navigator)) {
+    $("connect-status").textContent = "WebSerial not supported — use Chrome or Edge on a computer.";
+    return;
+  }
+  $("btn-connect").disabled = true;
+  $("connect-status").textContent = "Connecting…";
+  connectDevice().then(function (pk) {
+    $("btn-connect").textContent = "Connected";
+    $("connect-status").textContent = "Confirmed: " + deviceVersion + "  ·  " + deviceId;
+    if (/^error:? locked$/.test(pk)) {
+      $("haskey-detail").textContent = "locked — a PIN-protected key is already set";
+      showCard("haskey-card");
+    } else if (/^[0-9a-f]{64}$/.test(pk)) {
+      $("haskey-detail").textContent = "unlocked, pubkey " + pk.slice(0, 12) + "…";
+      showCard("haskey-card");
+    } else {
+      // "error: no-key" (or unrecognized) -> fresh device, but still needs the
+      // user to physically arm RESTORE on the device before words are accepted
+      showCard("arm-card");
+      pollForArm();
+    }
+  }).catch(function (e) {
+    $("btn-connect").disabled = false;
+    $("connect-status").textContent = "Connect failed: " + e.message;
+  });
+});
+
+$("btn-restore").addEventListener("click", function () {
+  var words = wordInputs.map(function (i) { return i.value.trim().toLowerCase(); });
+  $("btn-restore").disabled = true;
+  $("restore-status").textContent = "Sending to device…";
+  call("/restore-words", words.join(" "), 5000).then(function (resp) {
+    if (resp === "ok") {
+      showCard("pin-card");
+      pollForKey();
+    } else {
+      $("restore-status").textContent = "";
+      $("btn-restore").disabled = false;
+      if (resp.indexOf("not-armed") >= 0) {
+        showError("The device's 5-minute RESTORE window expired. Tap RESTORE on the device again, then reload this page.");
+      } else {
+        showError("Device rejected the words: " + resp +
+          (resp.indexOf("bad-checksum") >= 0 ? " — double-check the word order and each word's spelling." : ""));
+      }
+    }
+  }).catch(function (e) {
+    $("btn-restore").disabled = false;
+    $("restore-status").textContent = "";
+    showError("Restore request failed: " + e.message);
+  });
+});
+
+$("btn-erase").addEventListener("click", function () {
+  $("btn-erase").disabled = true;
+  $("erase-status").textContent = "Requesting…";
+  call("/erase-request", null, 5000).then(function (resp) {
+    $("erase-status").textContent = "";
+    if (resp === "ok") {
+      showCard("erase-wait-card");
+      pollForErase();
+    } else {
+      $("btn-erase").disabled = false;
+      showError("Device refused the erase request: " + resp);
+    }
+  }).catch(function (e) {
+    $("btn-erase").disabled = false;
+    $("erase-status").textContent = "";
+    showError("Erase request failed: " + e.message);
+  });
+});
+
+// After a successful wipe the device is a fresh NOKEY board, same as any
+// other -- RESTORE still needs to be tapped there before words are accepted,
+// so this hands off into the normal arm/restore flow rather than duplicating it.
+function pollForErase() {
+  var deadline = Date.now() + 5 * 60 * 1000; // matches the device's own confirm patience
+  function attempt() {
+    call("/public-key", null, 3000).then(function (pk) {
+      if (/^error:? no-key$/.test(pk)) {
+        showCard("arm-card");
+        pollForArm();
+      } else if (Date.now() < deadline) {
+        setTimeout(attempt, 1000);
+      } else {
+        showError("Timed out waiting for the erase to be confirmed on the device. Reload and try again.");
+      }
+    }).catch(function () {
+      if (Date.now() < deadline) setTimeout(attempt, 1000);
+      else showError("Lost contact with the device while waiting for the erase to be confirmed.");
+    });
+  }
+  attempt();
+}
+
+function pollForArm() {
+  var deadline = Date.now() + 5 * 60 * 1000; // matches the device's own arm window
+  function attempt() {
+    call("/restore-ready", null, 3000).then(function (resp) {
+      if (resp === "armed") {
+        showCard("words-card");
+      } else if (/^error:? key-exists$/.test(resp)) {
+        $("haskey-detail").textContent = "a key appeared on the device";
+        showCard("haskey-card");
+      } else if (Date.now() < deadline) {
+        setTimeout(attempt, 1000);
+      } else {
+        showError("Timed out waiting for RESTORE to be pressed on the device. Reload and try again.");
+      }
+    }).catch(function () {
+      if (Date.now() < deadline) setTimeout(attempt, 1000);
+      else showError("Lost contact with the device while waiting for RESTORE.");
+    });
+  }
+  attempt();
+}
+
+function pollForKey() {
+  var deadline = Date.now() + 5 * 60 * 1000; // give plenty of time for on-device PIN entry
+  function attempt() {
+    call("/public-key", null, 3000).then(function (pk) {
+      if (/^[0-9a-f]{64}$/.test(pk)) {
+        var npub = bech32Encode("npub", hexToBytes(pk));
+        $("npub-out").textContent = npub;
+        $("hex-out").textContent = pk;
+        showCard("done-card");
+      } else if (Date.now() < deadline) {
+        setTimeout(attempt, 1500);
+      } else {
+        showError("Timed out waiting for the PIN to be set on the device. Reload and try again.");
+      }
+    }).catch(function () {
+      if (Date.now() < deadline) setTimeout(attempt, 1500);
+      else showError("Lost contact with the device while waiting for the PIN.");
+    });
+  }
+  setTimeout(attempt, 1200);
+}
+
+$("btn-copy-npub").addEventListener("click", function () {
+  navigator.clipboard.writeText($("npub-out").textContent).then(function () {
+    $("btn-copy-npub").textContent = "Copied!";
+    setTimeout(function () { $("btn-copy-npub").textContent = "Copy npub"; }, 1500);
+  });
+});
+
+$("btn-retry").addEventListener("click", function () { location.reload(); });
+
+buildWordGrid();
+</script>
+</body>
+</html>

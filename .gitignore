@@ -1,0 +1,5 @@
+.pio/
+flasher/firmware/
+flasher/manifest.json
+flasher/deploy.env
+recover/deploy.env
