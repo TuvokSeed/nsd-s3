@@ -120,13 +120,12 @@
     <li>Use a USB-C cable that carries data (not a charge-only cable).</li>
     <li>Click <strong>Connect device &amp; install</strong>, then pick the board from
       the Chrome port picker.</li>
-    <li>A normal reflash <strong>keeps your key and PIN</strong> — the encrypted
-      key vault lives in a separate NVS partition the flasher doesn't touch.</li>
-    <li>The install dialog has an <strong>"Erase device"</strong> option. Only tick
-      it if you want a full factory reset — that wipes the key vault and everything
-      else on the board, permanently.</li>
-    <li>Erased and have a 12-word backup? Restore it at
-      <a href="https://recover.flink.club">recover.flink.club</a> once this finishes.</li>
+    <li><strong>Flashing from this page erases the whole device, including your
+      key vault.</strong> Make sure your 12-word backup is written down <em>before</em>
+      you flash — afterwards the device starts fresh (new key, or restore).</li>
+    <li>Have your 12-word backup? Restore it at
+      <a href="https://recover.flink.club">recover.flink.club</a> once flashing
+      finishes, then set a new PIN on the device.</li>
   </ul>
 
   <h2>First flash on a factory board</h2>

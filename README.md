@@ -9,6 +9,16 @@ press approves or rejects.
 
 ## Status
 
+**v0.0.11 — key generation gets a real hardware entropy source.** With no
+Wi-Fi/BT running (this firmware runs neither), `esp_random()` on the ESP32-S3
+is only pseudo-random — the hardware RNG register keeps updating but has no
+entropy source feeding it, the same silent-fallback failure shape as the 2026
+Coldcard Mk3 bug. Mnemonic entropy and vault salts/nonces were drawn that way.
+Now every key-material draw enables the RF-independent bootloader entropy
+source for its duration and is additionally mixed (SHA-256) with a pool
+stirred by button-press timings, so no single failure can degrade the output.
+Seeds generated on earlier firmware should be rotated once convenient.
+
 **v0.0.10 — `/shared-secret` shows what it's for.** Receiving a NIP-17 DM
 needs two separate approvals in a row (the ephemeral outer wrap, then the
 sender's real-pubkey seal), and it wasn't obvious on-device which was which.
@@ -148,7 +158,7 @@ Extensions (this device only — used by flink.club and `tools/protocol-test.py`
 | command                | reply                                                |
 |------------------------|------------------------------------------------------|
 | `/sign-event <json>`   | event-aware approval screen; `/sign-event <64hex id> <128hex sig>` \| `rejected` \| `timeout` \| `error <token>`. Requires `created_at` (device has no clock); `pubkey` optional but must match the device key; id computed on-device. Max line 8 KB. |
-| `/version`             | `/version nostr-signer-s3 v0.0.10`                   |
+| `/version`             | `/version nostr-signer-s3 v0.0.11`                   |
 | `/npub`                | `/npub npub1...`                                     |
 | `/last-button`         | `/last-button <which>` (debug)                       |
 | `/restore-ready`       | `armed` \| `not-armed` \| `error: key-exists`. Poll after connecting — only `armed` while the user has tapped `RESTORE >` on the device within the last 5 minutes. |
@@ -173,9 +183,13 @@ Extensions (this device only — used by flink.club and `tools/protocol-test.py`
    builds, copies bins from `.pio/build/tdisplay-s3/` + the framework's boot_app0.bin,
    stamps `manifest.json` with the git hash + firmware.bin sha256 (shown on the page),
    and (with `--deploy`) scps to your own web root (copy `deploy.env.example` to
-   `deploy.env` and fill in your server). Page explains normal reflash preserves
-   NVS (key+PIN survive) vs the install dialog's "Erase device" checkbox = factory
-   reset. Verified headlessly (chrome-headless-shell + CDP): custom element registers,
+   `deploy.env` and fill in your server). NOTE (2026-07-31, field-tested): a web
+   flash always FULL-ERASES the device including the NVS vault — esp-web-tools
+   only offers a data-preserving update when it recognizes the running firmware
+   via Improv serial, which NSD doesn't implement, so every web install is a
+   "new install" with a mandatory erase. Only `pio run -t upload` preserves the
+   vault; the page warns to back up words before flashing. Implementing Improv
+   (web updates that keep the key) = candidate for a future version. Verified headlessly (chrome-headless-shell + CDP): custom element registers,
    WebSerial detected, manifest loads, zero console errors/failed requests. Live at
    [flash.flink.club](https://flash.flink.club).
 8. Later: NIP-46 WiFi bunker mode (sign for mobile clients via relay)

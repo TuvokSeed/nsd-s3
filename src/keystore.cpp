@@ -1,6 +1,7 @@
 #include "keystore.h"
 
 #include <Preferences.h>
+#include <bootloader_random.h>
 #include <esp_random.h>
 #include <mbedtls/gcm.h>
 #include <mbedtls/md.h>
@@ -38,6 +39,55 @@ static const uint8_t CURVE_N[32] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xfe, 0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48,
     0xa0, 0x3b, 0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41, 0x41};
+
+// ---- randomness ------------------------------------------------------------
+// esp_fill_random() is only truly random while an RF subsystem (Wi-Fi/BT) or
+// the bootloader entropy source is running. This firmware runs neither radio,
+// so a raw call silently degrades to pseudo-random -- the same failure shape
+// as the 2026 Coldcard Mk3 entropy bug. Every key-material draw therefore
+// enables the RF-independent hardware entropy source for its duration (safe:
+// nothing in NSD uses the SAR ADC or Wi-Fi) and is mixed with a pool stirred
+// by human button-press timings.
+
+static uint8_t entropyPool[32];
+
+// out = SHA256(sep || a || b). sep domain-separates the pool ratchet from the
+// output draw so one can never be derived from the other.
+static void sha256Mix(uint8_t sep, const uint8_t* a, size_t alen,
+                      const uint8_t* b, size_t blen, uint8_t out[32]) {
+  mbedtls_md_context_t ctx;
+  mbedtls_md_init(&ctx);
+  const mbedtls_md_info_t* info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  if (info && mbedtls_md_setup(&ctx, info, 0) == 0) {
+    mbedtls_md_starts(&ctx);
+    mbedtls_md_update(&ctx, &sep, 1);
+    mbedtls_md_update(&ctx, a, alen);
+    mbedtls_md_update(&ctx, b, blen);
+    mbedtls_md_finish(&ctx, out);
+  }
+  mbedtls_md_free(&ctx);
+}
+
+void keystoreEntropyStir(uint32_t event) {
+  uint32_t t[3] = {event, (uint32_t)micros(), (uint32_t)ESP.getCycleCount()};
+  sha256Mix(0x01, entropyPool, sizeof(entropyPool), (const uint8_t*)t,
+            sizeof(t), entropyPool);
+}
+
+static void secureRandom(uint8_t* out, size_t len) {  // len <= 32
+  uint8_t hw[32], digest[32];
+  bootloader_random_enable();
+  esp_fill_random(hw, sizeof(hw));
+  bootloader_random_disable();
+  keystoreEntropyStir(0);  // fold draw-time jitter into the pool
+  sha256Mix(0x02, entropyPool, sizeof(entropyPool), hw, sizeof(hw), digest);
+  memcpy(out, digest, len);
+  // ratchet the pool forward so its state never reveals what was handed out
+  sha256Mix(0x03, entropyPool, sizeof(entropyPool), hw, sizeof(hw),
+            entropyPool);
+  memset(hw, 0, sizeof(hw));
+  memset(digest, 0, sizeof(digest));
+}
 
 static bool isValidSecret(const uint8_t k[32]) {
   bool allZero = true;
@@ -92,8 +142,8 @@ bool keystoreCreateVaultRawKey(const char* pin, const uint8_t key[32]) {
   uint8_t* nonce = blob + 21;
   uint8_t* ct = blob + 33;
   uint8_t* tag = blob + 65;
-  esp_fill_random(salt, 16);
-  esp_fill_random(nonce, 12);
+  secureRandom(salt, 16);
+  secureRandom(nonce, 12);
 
   uint8_t kek[32];
   if (!deriveKek(pin, salt, iters, kek)) return false;
@@ -134,8 +184,8 @@ bool keystoreCreateVault(const char* pin, const char* mnemonic) {
   uint8_t* nonce = blob + 21;
   uint8_t* ct = blob + 33;
   uint8_t* tag = blob + 161;
-  esp_fill_random(salt, 16);
-  esp_fill_random(nonce, 12);
+  secureRandom(salt, 16);
+  secureRandom(nonce, 12);
 
   uint8_t kek[32];
   if (!deriveKek(pin, salt, iters, kek)) {
@@ -247,7 +297,7 @@ void keystoreEraseAll() {
   p.end();
 }
 
-void keystoreGenerateEntropy(uint8_t out[16]) { esp_fill_random(out, 16); }
+void keystoreGenerateEntropy(uint8_t out[16]) { secureRandom(out, 16); }
 
 bool keystoreIsValidSecret(const uint8_t k[32]) { return isValidSecret(k); }
 

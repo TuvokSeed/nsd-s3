@@ -38,8 +38,15 @@ void keystoreDeleteLegacy();
 // (e.g. `pio run -t erase`): firmware stays intact, no reflash needed after.
 void keystoreEraseAll();
 
-// Fills out[16] from the hardware RNG (128 bits entropy for a 12-word mnemonic).
+// Fills out[16] with 128 bits of entropy for a 12-word mnemonic. v0.0.11:
+// draws with the RF-independent hardware entropy source enabled (without it,
+// esp_random() on a no-radio firmware is only pseudo-random) and mixes in the
+// button-timing pool below.
 void keystoreGenerateEntropy(uint8_t out[16]);
+
+// Stir human interaction timing (e.g. button edges) into the entropy pool.
+// Cheap (one SHA-256); call freely from input handling.
+void keystoreEntropyStir(uint32_t event);
 
 // True if k is nonzero and < the secp256k1 group order (a valid secret key).
 bool keystoreIsValidSecret(const uint8_t k[32]);

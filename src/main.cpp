@@ -146,7 +146,7 @@
 #include "nostr_event.h"
 #include "qrcode.h"
 
-#define FW_VERSION "0.0.10"
+#define FW_VERSION "0.0.11"
 #define SIGN_TIMEOUT_MS 60000
 #define GENERATE_HOLD_MS 3000
 #define RX_MAX 8192
@@ -171,6 +171,7 @@ struct Button {
       pressed = raw;
       changed = true;
       lastEdgeMs = millis();
+      keystoreEntropyStir(((uint32_t)pin << 1) | (raw ? 1 : 0));
     }
   }
   bool tapped() { return changed && pressed; }

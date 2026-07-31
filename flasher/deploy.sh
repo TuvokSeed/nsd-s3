@@ -48,10 +48,12 @@ cp "$BUILD_DIR/firmware.bin"   "$FLASHER_DIR/firmware/firmware.bin"
 cp "$BOOT_APP0"                "$FLASHER_DIR/firmware/boot_app0.bin"
 
 GIT_HASH="$(cd "$REPO_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+FW_SEMVER="$(sed -n 's/^#define FW_VERSION "\(.*\)"$/\1/p' "$REPO_ROOT/src/main.cpp")"
+FW_VERSION_LABEL="${FW_SEMVER:-unknown} ($GIT_HASH)"
 FW_SHA256="$(sha256sum "$FLASHER_DIR/firmware/firmware.bin" | cut -d' ' -f1)"
 
-echo "==> writing manifest.json (version $GIT_HASH)"
-python3 - "$FLASHER_DIR/manifest.json" "$GIT_HASH" "$FW_SHA256" <<'PY'
+echo "==> writing manifest.json (version $FW_VERSION_LABEL)"
+python3 - "$FLASHER_DIR/manifest.json" "$FW_VERSION_LABEL" "$FW_SHA256" <<'PY'
 import json, sys
 out_path, version, fw_sha256 = sys.argv[1], sys.argv[2], sys.argv[3]
 manifest = {
